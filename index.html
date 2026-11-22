@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ДМБ">
+<meta name="theme-color" content="#11140f">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<title>ДМБ Таймер · Bundeswehr</title>
+<style>
+  :root {
+    --bg: #11140f;
+    --card: #1b2017;
+    --card2: #232a1d;
+    --line: #2f3827;
+    --text: #eef2e6;
+    --muted: #9aa58c;
+    --accent: #b5d334;
+    --accent2: #e8c547;
+    --red: #dd0000;
+    --gold: #ffcc00;
+    --radius: 22px;
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh;
+    padding: calc(var(--safe-top) + 12px) 16px calc(var(--safe-bottom) + 24px);
+    -webkit-user-select: none; user-select: none;
+    overscroll-behavior-y: none;
+  }
+  .num { font-variant-numeric: tabular-nums; }
+  header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .brand { display: flex; align-items: center; gap: 10px; }
+  .flag { width: 26px; height: 18px; border-radius: 4px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 1px #0006; }
+  .flag i { flex: 1; } .flag i:nth-child(1){background:#000} .flag i:nth-child(2){background:var(--red)} .flag i:nth-child(3){background:var(--gold)}
+  h1 { font-size: 22px; margin: 0; letter-spacing: .5px; }
+  h1 small { display: block; font-size: 12px; color: var(--muted); font-weight: 500; letter-spacing: 0; }
+  .icon-btn { background: var(--card); border: 1px solid var(--line); color: var(--text); width: 42px; height: 42px; border-radius: 14px; font-size: 20px; display: grid; place-items: center; cursor: pointer; }
+
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; }
+  .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: 1.2px; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+
+  /* hero countdown */
+  .hero { text-align: center; padding: 22px 14px; background: radial-gradient(120% 90% at 50% 0%, #2c3a1a 0%, var(--card) 60%); }
+  .hero .label { color: var(--muted); font-size: 14px; }
+  .hero .bigdays { font-size: 84px; font-weight: 800; line-height: 1; margin: 6px 0 2px; color: var(--accent); text-shadow: 0 0 30px #b5d33433; }
+  .hero .bigdays-sub { font-size: 16px; color: var(--muted); margin-bottom: 14px; }
+  .clock { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+  .clock div { background: var(--card2); border-radius: 14px; padding: 10px 0 8px; }
+  .clock b { display: block; font-size: 28px; font-weight: 700; }
+  .clock span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; }
+  .done-msg { font-size: 30px; font-weight: 800; color: var(--gold); margin: 10px 0; }
+
+  /* tabs */
+  .tabs { display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none; margin: -4px -4px 14px; padding: 4px; }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab { flex: 0 0 auto; background: var(--card2); border: 1px solid var(--line); color: var(--muted); padding: 8px 13px; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; }
+  .tab.active { background: var(--accent); color: #141a08; border-color: var(--accent); }
+  .view { display: none; } .view.active { display: block; animation: fade .3s ease; }
+  @keyframes fade { from { opacity: 0; transform: translateY(6px);} to { opacity: 1; transform: none; } }
+
+  /* ring */
+  .ring-wrap { position: relative; width: 250px; height: 250px; margin: 4px auto; }
+  .ring-wrap svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+  .ring-center { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; }
+  .ring-center b { font-size: 40px; font-weight: 800; }
+  .ring-center small { color: var(--muted); font-size: 13px; }
+  .ring-precise { font-size: 13px; color: var(--accent); margin-top: 4px; }
+
+  /* battery */
+  .battery { position: relative; width: 120px; height: 230px; margin: 10px auto 6px; border: 5px solid var(--text); border-radius: 20px; padding: 6px; }
+  .battery::before { content: ""; position: absolute; top: -16px; left: 50%; transform: translateX(-50%); width: 44px; height: 11px; background: var(--text); border-radius: 6px 6px 0 0; }
+  .battery-inner { position: relative; width: 100%; height: 100%; border-radius: 10px; overflow: hidden; background: #0b0d09; }
+  .battery-fill { position: absolute; bottom: 0; left: 0; right: 0; transition: height 1s ease, background .5s; }
+  .battery-txt { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; font-weight: 800; font-size: 21px; text-shadow: 0 1px 4px #000; }
+  .battery-txt small { font-size: 12px; font-weight: 600; }
+
+  /* tape measure (Maßband) */
+  .tape-info { text-align: center; margin-bottom: 12px; }
+  .tape-info b { font-size: 44px; color: var(--gold); }
+  .tape-scroll { overflow-x: auto; border-radius: 10px; }
+  .tape { height: 74px; background: linear-gradient(#ffd83a, #f0be17); position: relative; border-radius: 8px; box-shadow: inset 0 -3px 0 #c99a00; }
+  .tape .tick { position: absolute; bottom: 0; width: 1px; background: #2a2100; }
+  .tape .lbl { position: absolute; top: 6px; font-size: 11px; font-weight: 700; color: #2a2100; transform: translateX(-50%); }
+  .tape-cut { position: absolute; top: -4px; bottom: -4px; width: 0; border-left: 2px dashed var(--red); }
+  .hint { font-size: 12px; color: var(--muted); margin-top: 10px; line-height: 1.45; }
+
+  /* days grid */
+  .dots { display: grid; grid-template-columns: repeat(auto-fill, minmax(9px, 1fr)); gap: 3px; }
+  .dot { aspect-ratio: 1; border-radius: 2px; background: var(--line); }
+  .dot.on { background: var(--accent); }
+  .dot.today { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+  .legend { display: flex; gap: 14px; font-size: 12px; color: var(--muted); margin-top: 10px; }
+  .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 5px; vertical-align: -1px; }
+
+  /* hourglass */
+  .hg { display: block; margin: 0 auto; width: 170px; height: 250px; }
+
+  /* bar + stats */
+  .bar { height: 16px; background: var(--card2); border-radius: 999px; overflow: hidden; position: relative; }
+  .bar > div { height: 100%; background: linear-gradient(90deg, #6c8a19, var(--accent)); border-radius: 999px; transition: width 1s ease; }
+  .bar-row { display: flex; justify-content: space-between; font-size: 13px; color: var(--muted); margin-top: 8px; }
+  .pct-big { font-size: 34px; font-weight: 800; margin-bottom: 10px; }
+  .pct-big small { font-size: 15px; color: var(--muted); font-weight: 600; }
+
+  .stats { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .stat { background: var(--card2); border-radius: 14px; padding: 12px; }
+  .stat b { display: block; font-size: 20px; font-weight: 700; }
+  .stat span { font-size: 12px; color: var(--muted); }
+
+  .ms { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--line); }
+  .ms:last-child { border-bottom: 0; }
+  .ms .chk { width: 28px; height: 28px; border-radius: 50%; border: 2px solid var(--line); display: grid; place-items: center; font-size: 14px; flex: 0 0 auto; }
+  .ms.done .chk { background: var(--accent); border-color: var(--accent); color: #141a08; }
+  .ms .t { flex: 1; } .ms .t b { display: block; font-size: 15px; } .ms .t span { font-size: 12px; color: var(--muted); }
+  .ms .d { font-size: 13px; color: var(--muted); text-align: right; }
+
+  .quote { font-style: italic; color: var(--muted); text-align: center; font-size: 14px; padding: 4px 8px; }
+
+  /* settings sheet */
+  .sheet-bg { position: fixed; inset: 0; background: #000a; display: none; z-index: 10; backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+  .sheet-bg.open { display: block; }
+  .sheet { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-radius: 26px 26px 0 0; padding: 20px 18px calc(var(--safe-bottom) + 22px); z-index: 11; transform: translateY(110%); transition: transform .3s ease; max-height: 92vh; overflow-y: auto; -webkit-user-select: text; user-select: text; }
+  .sheet.open { transform: none; }
+  .sheet h3 { margin: 0 0 16px; font-size: 20px; }
+  .field { margin-bottom: 14px; }
+  .field label { display: block; font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .row2 { display: grid; grid-template-columns: 1.4fr 1fr; gap: 8px; }
+  input { width: 100%; background: var(--card2); color: var(--text); border: 1px solid var(--line); border-radius: 12px; padding: 12px; font-size: 17px; font-family: inherit; -webkit-appearance: none; appearance: none; min-height: 48px; }
+  input:focus { outline: 2px solid var(--accent); border-color: transparent; }
+  .btn { width: 100%; background: var(--accent); color: #141a08; border: 0; border-radius: 14px; padding: 15px; font-size: 17px; font-weight: 700; cursor: pointer; margin-top: 6px; }
+  .btn.ghost { background: transparent; color: var(--muted); border: 1px solid var(--line); }
+  .presets { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+  .presets button { background: var(--card2); border: 1px solid var(--line); color: var(--text); border-radius: 10px; padding: 8px 10px; font-size: 13px; cursor: pointer; }
+  .err { color: #ff6b6b; font-size: 13px; min-height: 18px; margin-bottom: 6px; }
+  .install-tip { font-size: 13px; color: var(--muted); background: var(--card2); border-radius: 12px; padding: 12px; line-height: 1.5; margin-top: 14px; }
+
+  canvas#confetti { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="flag"><i></i><i></i><i></i></div>
+    <h1>ДМБ Таймер<small id="subtitle">Bundeswehr</small></h1>
+  </div>
+  <button class="icon-btn" id="openSettings" aria-label="Настройки">⚙︎</button>
+</header>
+
+<!-- HERO -->
+<section class="card hero" id="hero">
+  <div class="label" id="heroLabel">До дембеля осталось</div>
+  <div class="bigdays num" id="bigDays">—</div>
+  <div class="bigdays-sub" id="bigDaysSub">дней</div>
+  <div class="clock num">
+    <div><b id="cD">0</b><span>дней</span></div>
+    <div><b id="cH">00</b><span>часов</span></div>
+    <div><b id="cM">00</b><span>минут</span></div>
+    <div><b id="cS">00</b><span>секунд</span></div>
+  </div>
+</section>
+
+<!-- PROGRESS BAR -->
+<section class="card">
+  <h2>Прогресс службы</h2>
+  <div class="pct-big num"><span id="pctBig">0,000000</span>%<small> отслужено</small></div>
+  <div class="bar"><div id="barFill" style="width:0"></div></div>
+  <div class="bar-row num"><span id="startLbl">—</span><span id="endLbl">—</span></div>
+</section>
+
+<!-- VISUAL TIMERS -->
+<section class="card">
+  <div class="tabs" id="tabs">
+    <button class="tab active" data-v="ring">⭕ Кольцо</button>
+    <button class="tab" data-v="battery">🔋 Батарея</button>
+    <button class="tab" data-v="tape">📏 Maßband</button>
+    <button class="tab" data-v="hourglass">⏳ Часы</button>
+    <button class="tab" data-v="grid">🗓 Все дни</button>
+  </div>
+
+  <div class="view active" id="v-ring">
+    <div class="ring-wrap">
+      <svg viewBox="0 0 120 120">
+        <defs>
+          <linearGradient id="rg" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#e8c547"/><stop offset="1" stop-color="#b5d334"/>
+          </linearGradient>
+        </defs>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="#2f3827" stroke-width="10"/>
+        <circle id="ringArc" cx="60" cy="60" r="52" fill="none" stroke="url(#rg)" stroke-width="10" stroke-linecap="round" stroke-dasharray="326.73" stroke-dashoffset="326.73" style="transition: stroke-dashoffset 1s ease"/>
+        <circle cx="60" cy="60" r="40" fill="none" stroke="#2f3827" stroke-width="4"/>
+        <circle id="ringDay" cx="60" cy="60" r="40" fill="none" stroke="#dd0000" stroke-width="4" stroke-linecap="round" stroke-dasharray="251.33" stroke-dashoffset="251.33"/>
+      </svg>
+      <div class="ring-center">
+        <b class="num" id="ringPct">0%</b>
+        <small>службы позади</small>
+        <div class="ring-precise num" id="ringPrecise"></div>
+      </div>
+    </div>
+    <p class="hint" style="text-align:center">Внешнее кольцо — вся служба. Красное внутреннее — сегодняшний день.</p>
+  </div>
+
+  <div class="view" id="v-battery">
+    <div class="battery">
+      <div class="battery-inner">
+        <div class="battery-fill" id="batFill"></div>
+        <div class="battery-txt num"><span id="batPct">0%</span><small>заряд свободы</small></div>
+      </div>
+    </div>
+    <p class="hint" style="text-align:center">Батарея заряжается с каждым прослуженным днём. 100% — домой!</p>
+  </div>
+
+  <div class="view" id="v-tape">
+    <div class="tape-info">
+      <b class="num" id="tapeCm">150</b> <span style="color:var(--muted)">см осталось</span>
+    </div>
+    <div class="tape-scroll"><div class="tape" id="tape"></div></div>
+    <p class="hint">Традиция Bundeswehr: за 150 дней до конца службы берут сантиметровую ленту (Maßband) и каждый день отрезают по 1 см. Тут лента режется сама. <span id="tapeNote"></span></p>
+  </div>
+
+  <div class="view" id="v-hourglass">
+    <svg class="hg" viewBox="0 0 100 150">
+      <defs>
+        <clipPath id="hgTop"><path d="M18 14 L82 14 L82 22 Q82 50 54 72 L46 72 Q18 50 18 22 Z"/></clipPath>
+        <clipPath id="hgBot"><path d="M46 78 L54 78 Q82 100 82 128 L82 136 L18 136 L18 128 Q18 100 46 78 Z"/></clipPath>
+      </defs>
+      <rect x="10" y="6" width="80" height="8" rx="3" fill="#6b5a3a"/>
+      <rect x="10" y="136" width="80" height="8" rx="3" fill="#6b5a3a"/>
+      <path d="M18 14 L82 14 L82 22 Q82 50 54 72 L54 78 Q82 100 82 128 L82 136 L18 136 L18 128 Q18 100 46 78 L46 72 Q18 50 18 22 Z" fill="#ffffff0d" stroke="#9aa58c" stroke-width="1.5"/>
+      <rect id="hgSandTop" clip-path="url(#hgTop)" x="0" y="14" width="100" height="58" fill="#e8c547"/>
+      <rect id="hgSandBot" clip-path="url(#hgBot)" x="0" y="136" width="100" height="0" fill="#e8c547"/>
+      <line id="hgStream" x1="50" y1="72" x2="50" y2="136" stroke="#e8c547" stroke-width="1.6" stroke-dasharray="2 3">
+        <animate attributeName="stroke-dashoffset" from="0" to="-10" dur="0.6s" repeatCount="indefinite"/>
+      </line>
+    </svg>
+    <p class="hint" style="text-align:center"><span class="num" id="hgTxt"></span></p>
+  </div>
+
+  <div class="view" id="v-grid">
+    <div class="dots" id="dots"></div>
+    <div class="legend">
+      <span><i style="background:var(--accent)"></i>отслужено</span>
+      <span><i style="background:var(--gold)"></i>сегодня</span>
+      <span><i style="background:var(--line)"></i>осталось</span>
+    </div>
+  </div>
+</section>
+
+<!-- STATS -->
+<section class="card">
+  <h2>Цифры</h2>
+  <div class="stats num">
+    <div class="stat"><b id="sServed">0</b><span>дней отслужено</span></div>
+    <div class="stat"><b id="sLeft">0</b><span>дней осталось</span></div>
+    <div class="stat"><b id="sTotal">0</b><span>дней всего</span></div>
+    <div class="stat"><b id="sMonths">0</b><span>осталось (мес./дн.)</span></div>
+    <div class="stat"><b id="sWeeks">0</b><span>недель осталось</span></div>
+    <div class="stat"><b id="sWeekends">0</b><span>выходных осталось</span></div>
+    <div class="stat"><b id="sWork">0</b><span>будних дней осталось</span></div>
+    <div class="stat"><b id="sNights">0</b><span>ночей до дома</span></div>
+    <div class="stat"><b id="sHours">0</b><span>часов осталось</span></div>
+    <div class="stat"><b id="sMins">0</b><span>минут осталось</span></div>
+    <div class="stat" style="grid-column: span 2"><b id="sSecs">0</b><span>секунд осталось</span></div>
+  </div>
+</section>
+
+<!-- MILESTONES -->
+<section class="card">
+  <h2>Этапы</h2>
+  <div id="milestones"></div>
+</section>
+
+<section class="card"><div class="quote" id="quote"></div></section>
+
+<!-- SETTINGS -->
+<div class="sheet-bg" id="sheetBg"></div>
+<div class="sheet" id="sheet">
+  <h3>Даты службы</h3>
+  <div class="field">
+    <label for="name">Имя / позывной (необязательно)</label>
+    <input id="name" type="text" placeholder="Напр. Gefreiter Иванов" maxlength="40">
+  </div>
+  <div class="field">
+    <label>Начало службы (Dienstantritt)</label>
+    <div class="row2">
+      <input id="startDate" type="date">
+      <input id="startTime" type="time" value="08:00">
+    </div>
+  </div>
+  <div class="field">
+    <label>Срок службы — быстро</label>
+    <div class="presets" id="presets">
+      <button data-m="7">FWD 7 мес.</button>
+      <button data-m="12">12 мес.</button>
+      <button data-m="17">FWD 17 мес.</button>
+      <button data-m="23">FWD 23 мес.</button>
+      <button data-m="24">SaZ 2 года</button>
+      <button data-m="48">SaZ 4 года</button>
+    </div>
+  </div>
+  <div class="field">
+    <label>Конец службы (Dienstzeitende)</label>
+    <div class="row2">
+      <input id="endDate" type="date">
+      <input id="endTime" type="time" value="16:00">
+    </div>
+  </div>
+  <div class="err" id="err"></div>
+  <button class="btn" id="save">Сохранить</button>
+  <button class="btn ghost" id="cancel">Отмена</button>
+  <div class="install-tip">
+    📲 <b>Установка на iPhone:</b> открой эту страницу в Safari → кнопка «Поделиться» <b>⬆︎</b> → «На экран „Домой“». Приложение будет открываться на весь экран и работать без интернета. Даты хранятся только на твоём телефоне.
+  </div>
+</div>
+
+<canvas id="confetti"></canvas>
+
+<script>
+(() => {
+  const DAY = 86400000;
+  const $ = id => document.getElementById(id);
+  const KEY = 'dmb-timer-v1';
+
+  const QUOTES = [
+    'Каждый день службы — на один день ближе к дому.',
+    'Durchhalten! Der Tag kommt bestimmt.',
+    'Дембель неизбежен, как восход солнца.',
+    'Heute ist ein guter Tag, um einen Tag weniger zu haben.',
+    'Не считай дни — пусть дни считает таймер.',
+    'Kopf hoch, Kamerad — Ende in Sicht!',
+    'Солдат спит — служба идёт.',
+    'Bergfest war gestern, heute ist Endspurt.',
+  ];
+
+  // ---------- state ----------
+  let cfg = load();
+  function load() {
+    try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch { return null; }
+  }
+  function save(c) { localStorage.setItem(KEY, JSON.stringify(c)); }
+
+  // ---------- helpers ----------
+  const pad = n => String(n).padStart(2, '0');
+  const fmtInt = n => Math.max(0, Math.floor(n)).toLocaleString('ru-RU');
+  const fmtDate = d => d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit', year: 'numeric' });
+  const fmtDateLong = d => d.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', year: 'numeric' });
+  const toDate = (date, time) => {
+    const [y, m, d] = date.split('-').map(Number);
+    const [hh, mm] = (time || '00:00').split(':').map(Number);
+    return new Date(y, m - 1, d, hh || 0, mm || 0, 0, 0);
+  };
+  const isoDate = d => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const startOfDay = d => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const plural = (n, one, few, many) => {
+    n = Math.abs(Math.floor(n)) % 100; const n1 = n % 10;
+    if (n > 10 && n < 20) return many;
+    if (n1 > 1 && n1 < 5) return few;
+    if (n1 === 1) return one;
+    return many;
+  };
+  // calendar day difference (DST-safe)
+  const dayDiff = (a, b) => Math.round((startOfDay(b) - startOfDay(a)) / DAY);
+
+  function countWeekdays(from, to) {
+    // counts days in [from, to) (by calendar date)
+    let a = startOfDay(from), b = startOfDay(to);
+    let work = 0, sat = 0, sun = 0;
+    const days = Math.max(0, dayDiff(a, b));
+    const full = Math.floor(days / 7);
+    work += full * 5; sat += full; sun += full;
+    let d = new Date(a); d.setDate(d.getDate() + full * 7);
+    while (d < b) {
+      const w = d.getDay();
+      if (w === 6) sat++; else if (w === 0) sun++; else work++;
+      d.setDate(d.getDate() + 1);
+    }
+    return { work, weekends: Math.max(sat, sun) };
+  }
+
+  function monthsDaysBetween(from, to) {
+    if (to <= from) return { m: 0, d: 0 };
+    let a = startOfDay(from), b = startOfDay(to);
+    let m = (b.getFullYear() - a.getFullYear()) * 12 + (b.getMonth() - a.getMonth());
+    let t = new Date(a); t.setMonth(t.getMonth() + m);
+    if (t > b) { m--; t = new Date(a); t.setMonth(t.getMonth() + m); }
+    return { m, d: dayDiff(t, b) };
+  }
+
+  // ---------- tabs ----------
+  let activeView = localStorage.getItem(KEY + '-view') || 'ring';
+  function setView(v) {
+    activeView = v;
+    localStorage.setItem(KEY + '-view', v);
+    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.v === v));
+    document.querySelectorAll('.view').forEach(el => el.classList.toggle('active', el.id === 'v-' + v));
+    lastGridKey = ''; tick();
+  }
+  $('tabs').addEventListener('click', e => { const b = e.target.closest('.tab'); if (b) setView(b.dataset.v); });
+
+  // ---------- tape ----------
+  const TAPE_PX = 14; // px per cm
+  function buildTape() {
+    const tape = $('tape');
+    tape.innerHTML = '';
+    tape.style.width = (150 * TAPE_PX + 20) + 'px';
+    for (let cm = 0; cm <= 150; cm++) {
+      const x = 10 + cm * TAPE_PX;
+      const t = document.createElement('div');
+      t.className = 'tick';
+      t.style.left = x + 'px';
+      t.style.height = cm % 10 === 0 ? '30px' : cm % 5 === 0 ? '20px' : '11px';
+      tape.appendChild(t);
+      if (cm % 10 === 0) {
+        const l = document.createElement('div');
+        l.className = 'lbl'; l.style.left = x + 'px'; l.textContent = cm;
+        tape.appendChild(l);
+      }
+    }
+    const cut = document.createElement('div');
+    cut.className = 'tape-cut'; cut.id = 'tapeCut';
+    tape.appendChild(cut);
+    const shade = document.createElement('div');
+    shade.id = 'tapeShade';
+    shade.style.cssText = 'position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(45deg,#11140fcc 0 6px,#11140fe6 6px 12px);border-radius:0 8px 8px 0';
+    tape.appendChild(shade);
+  }
+  buildTape();
+
+  // ---------- day grid ----------
+  let lastGridKey = '';
+  function renderGrid(start, end, now) {
+    const total = Math.max(1, dayDiff(start, end));
+    const served = Math.min(total, Math.max(0, dayDiff(start, now)));
+    const key = total + ':' + served;
+    if (key === lastGridKey) return;
+    lastGridKey = key;
+    const frag = document.createDocumentFragment();
+    for (let i = 0; i < total; i++) {
+      const d = document.createElement('div');
+      d.className = 'dot' + (i < served ? ' on' : i === served && now < end ? ' today' : '');
+      frag.appendChild(d);
+    }
+    const dots = $('dots');
+    dots.innerHTML = '';
+    dots.appendChild(frag);
+    // shrink dots for long services
+    dots.style.gridTemplateColumns = `repeat(auto-fill, minmax(${total > 900 ? 6 : total > 500 ? 7 : 9}px, 1fr))`;
+  }
+
+  // ---------- milestones ----------
+  let lastMsKey = '';
+  function renderMilestones(start, end, now) {
+    const total = end - start;
+    const list = [
+      { t: 'Начало службы', s: 'Dienstantritt', at: start },
+      { t: 'Первый месяц', s: '30 дней позади', at: new Date(start.getTime() + 30 * DAY) },
+      { t: '25% службы', s: 'Четверть пути', at: new Date(start.getTime() + total * 0.25) },
+      { t: 'Bergfest — 50%', s: 'Экватор: дальше только вниз с горы', at: new Date(start.getTime() + total * 0.5) },
+      { t: '75% службы', s: 'Три четверти', at: new Date(start.getTime() + total * 0.75) },
+      { t: '150 дней — Maßband', s: 'Пора резать ленту', at: new Date(end.getTime() - 150 * DAY) },
+      { t: '100 дней до дома', s: 'Трёхзначное — последнее', at: new Date(end.getTime() - 100 * DAY) },
+      { t: '30 дней до дома', s: 'Последний месяц', at: new Date(end.getTime() - 30 * DAY) },
+      { t: '7 дней до дома', s: 'Последняя неделя', at: new Date(end.getTime() - 7 * DAY) },
+      { t: 'ДМБ! 🎉', s: 'Dienstzeitende — свобода', at: end },
+    ].filter(m => m.at >= start && m.at <= end).sort((a, b) => a.at - b.at);
+
+    const key = list.map(m => +(m.at <= now)).join('') + start.getTime() + end.getTime() + startOfDay(now).getTime();
+    if (key === lastMsKey) return;
+    lastMsKey = key;
+
+    $('milestones').innerHTML = list.map(m => {
+      const done = m.at <= now;
+      const dd = dayDiff(now, m.at);
+      const rel = done ? 'выполнено' : dd === 0 ? 'сегодня' : `через ${dd} ${plural(dd, 'день', 'дня', 'дней')}`;
+      return `<div class="ms ${done ? 'done' : ''}">
+        <div class="chk">${done ? '✓' : ''}</div>
+        <div class="t"><b>${m.t}</b><span>${m.s}</span></div>
+        <div class="d">${fmtDate(m.at)}<br>${rel}</div>
+      </div>`;
+    }).join('');
+  }
+
+  // ---------- main tick ----------
+  let celebrated = false;
+  function tick() {
+    if (!cfg) return;
+    const start = toDate(cfg.startDate, cfg.startTime);
+    const end = toDate(cfg.endDate, cfg.endTime);
+    const now = new Date();
+    const total = end - start;
+    const elapsed = Math.min(Math.max(now - start, 0), total);
+    const remain = Math.max(end - now, 0);
+    const p = total > 0 ? elapsed / total : 0;
+    const pct = p * 100;
+
+    $('subtitle').textContent = cfg.name ? cfg.name : 'Bundeswehr';
+
+    // hero
+    const notStarted = now < start;
+    const finished = remain <= 0;
+    const rd = Math.floor(remain / DAY);
+    const rh = Math.floor(remain / 3600000) % 24;
+    const rm = Math.floor(remain / 60000) % 60;
+    const rs = Math.floor(remain / 1000) % 60;
+    if (finished) {
+      $('heroLabel').textContent = 'Служба окончена';
+      $('bigDays').innerHTML = '<span class="done-msg">ДМБ! 🎉</span>';
+      $('bigDaysSub').textContent = 'Dienstzeitende erreicht — добро пожаловать домой!';
+      if (!celebrated) { celebrated = true; confetti(); }
+    } else {
+      $('heroLabel').textContent = notStarted ? 'До начала службы ' + dayDiff(now, start) + ' дн. · до дембеля' : 'До дембеля осталось';
+      $('bigDays').textContent = rd.toLocaleString('ru-RU');
+      $('bigDaysSub').textContent = plural(rd, 'день', 'дня', 'дней') + ' · ' + fmtDateLong(end);
+    }
+    $('cD').textContent = rd; $('cH').textContent = pad(rh); $('cM').textContent = pad(rm); $('cS').textContent = pad(rs);
+
+    // progress bar
+    $('pctBig').textContent = pct.toLocaleString('ru-RU', { minimumFractionDigits: 6, maximumFractionDigits: 6 });
+    $('barFill').style.width = pct + '%';
+    $('startLbl').textContent = fmtDate(start);
+    $('endLbl').textContent = fmtDate(end);
+
+    // ring
+    if (activeView === 'ring') {
+      const C = 326.73;
+      $('ringArc').style.strokeDashoffset = C * (1 - p);
+      const sod = startOfDay(now);
+      const dayP = (now - sod) / DAY;
+      $('ringDay').style.strokeDashoffset = 251.33 * (1 - dayP);
+      $('ringPct').textContent = pct.toLocaleString('ru-RU', { maximumFractionDigits: 1, minimumFractionDigits: 1 }) + '%';
+      $('ringPrecise').textContent = pct.toFixed(7) + '%';
+    }
+
+    // battery
+    if (activeView === 'battery') {
+      $('batFill').style.height = pct + '%';
+      const hue = Math.round(p * 110); // red -> green
+      $('batFill').style.background = `linear-gradient(0deg, hsl(${hue} 75% 38%), hsl(${hue} 80% 52%))`;
+      $('batPct').textContent = pct.toFixed(2) + '%';
+    }
+
+    // tape
+    if (activeView === 'tape') {
+      const cmLeftExact = Math.min(150, remain / DAY);
+      const cmLeft = Math.ceil(cmLeftExact);
+      $('tapeCm').textContent = cmLeft;
+      const cutX = 10 + cmLeftExact * TAPE_PX;
+      $('tapeCut').style.left = cutX + 'px';
+      $('tapeShade').style.left = cutX + 'px';
+      $('tapeNote').textContent = remain / DAY > 150
+        ? `Резать начнёшь ${fmtDateLong(new Date(end - 150 * DAY))} — лента пока целая.`
+        : `Отрезано ${150 - cmLeft} см.`;
+    }
+
+    // hourglass
+    if (activeView === 'hourglass') {
+      const topH = 58 * (1 - p);
+      $('hgSandTop').setAttribute('y', 72 - topH);
+      $('hgSandTop').setAttribute('height', topH);
+      const botH = 58 * p;
+      $('hgSandBot').setAttribute('y', 136 - botH);
+      $('hgSandBot').setAttribute('height', botH);
+      $('hgStream').style.display = finished || notStarted ? 'none' : '';
+      $('hgTxt').textContent = `Песка наверху: ${(100 - pct).toFixed(3)}% · внизу: ${pct.toFixed(3)}%`;
+    }
+
+    if (activeView === 'grid') renderGrid(start, end, now);
+
+    // stats
+    const servedDays = Math.max(0, Math.floor(elapsed / DAY));
+    const totalDays = dayDiff(start, end);
+    $('sServed').textContent = fmtInt(servedDays);
+    $("sLeft").textContent = fmtInt(remain / DAY);
+    $('sTotal').textContent = fmtInt(totalDays);
+    const md = monthsDaysBetween(now < start ? start : now, end);
+    $('sMonths').textContent = finished ? '0' : `${md.m} мес. ${md.d} дн.`;
+    $('sWeeks').textContent = (remain / (7 * DAY)).toLocaleString('ru-RU', { maximumFractionDigits: 1 });
+    const wk = countWeekdays(now < start ? start : now, end);
+    $('sWeekends').textContent = fmtInt(finished ? 0 : wk.weekends);
+    $('sWork').textContent = fmtInt(finished ? 0 : wk.work);
+    $('sNights').textContent = fmtInt(finished ? 0 : Math.max(0, dayDiff(now, end)));
+    $('sHours').textContent = fmtInt(remain / 3600000);
+    $('sMins').textContent = fmtInt(remain / 60000);
+    $('sSecs').textContent = fmtInt(remain / 1000);
+
+    renderMilestones(start, end, now);
+  }
+
+  // ---------- settings ----------
+  function openSheet() {
+    const today = new Date();
+    $('name').value = cfg?.name || '';
+    $('startDate').value = cfg?.startDate || isoDate(today);
+    $('startTime').value = cfg?.startTime || '08:00';
+    $('endDate').value = cfg?.endDate || '';
+    $('endTime').value = cfg?.endTime || '16:00';
+    $('err').textContent = '';
+    $('sheet').classList.add('open'); $('sheetBg').classList.add('open');
+    $('cancel').style.display = cfg ? '' : 'none';
+  }
+  function closeSheet() {
+    if (!cfg) return;
+    $('sheet').classList.remove('open'); $('sheetBg').classList.remove('open');
+  }
+  $('openSettings').onclick = openSheet;
+  $('cancel').onclick = closeSheet;
+  $('sheetBg').onclick = closeSheet;
+  $('presets').addEventListener('click', e => {
+    const b = e.target.closest('button'); if (!b) return;
+    if (!$('startDate').value) { $('err').textContent = 'Сначала укажи дату начала.'; return; }
+    const s = toDate($('startDate').value, '00:00');
+    const end = new Date(s); end.setMonth(end.getMonth() + Number(b.dataset.m)); end.setDate(end.getDate() - 1);
+    $('endDate').value = isoDate(end);
+    $('err').textContent = '';
+  });
+  $('save').onclick = () => {
+    const c = {
+      name: $('name').value.trim(),
+      startDate: $('startDate').value, startTime: $('startTime').value || '00:00',
+      endDate: $('endDate').value, endTime: $('endTime').value || '00:00',
+    };
+    if (!c.startDate || !c.endDate) { $('err').textContent = 'Заполни обе даты.'; return; }
+    if (toDate(c.endDate, c.endTime) <= toDate(c.startDate, c.startTime)) { $('err').textContent = 'Конец службы должен быть позже начала.'; return; }
+    cfg = c; save(c); celebrated = false; lastGridKey = ''; lastMsKey = '';
+    closeSheet(); tick();
+  };
+
+  // ---------- confetti ----------
+  function confetti() {
+    const cv = $('confetti'), ctx = cv.getContext('2d');
+    const W = cv.width = innerWidth * devicePixelRatio, H = cv.height = innerHeight * devicePixelRatio;
+    const colors = ['#000', '#dd0000', '#ffcc00', '#b5d334', '#fff'];
+    const parts = Array.from({ length: 180 }, () => ({
+      x: Math.random() * W, y: -Math.random() * H, r: (4 + Math.random() * 6) * devicePixelRatio,
+      vx: (Math.random() - .5) * 2, vy: (2 + Math.random() * 4) * devicePixelRatio, a: Math.random() * 6, c: colors[Math.random() * colors.length | 0],
+    }));
+    let frames = 0;
+    (function draw() {
+      ctx.clearRect(0, 0, W, H);
+      parts.forEach(p => { p.x += p.vx; p.y += p.vy; p.a += .1; ctx.save(); ctx.translate(p.x, p.y); ctx.rotate(p.a); ctx.fillStyle = p.c; ctx.fillRect(-p.r / 2, -p.r / 4, p.r, p.r / 2); ctx.restore(); });
+      if (++frames < 360) requestAnimationFrame(draw); else ctx.clearRect(0, 0, W, H);
+    })();
+  }
+
+  // ---------- init ----------
+  $('quote').textContent = '«' + QUOTES[Math.floor(Date.now() / DAY) % QUOTES.length] + '»';
+  setView(activeView);
+  if (!cfg) openSheet();
+  tick();
+  setInterval(tick, 1000);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) tick(); });
+
+  if ('serviceWorker' in navigator) {
+    addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => {}));
+  }
+})();
+</script>
+</body>
+</html>
